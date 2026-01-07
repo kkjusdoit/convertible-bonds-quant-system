@@ -16,18 +16,32 @@
 
 ## 安装依赖
 ```bash
+cd cb_quant_system
+
+# 创建虚拟环境（首次使用）
+python3 -m venv venv
+
+# 激活虚拟环境
+source venv/bin/activate
+
+# 安装依赖
 pip install -r requirements.txt
 ```
 
 ## 快速开始
 ```bash
+# 进入项目目录并激活虚拟环境
 cd cb_quant_system
+source venv/bin/activate
 
 # 运行默认策略（综合评分）
 python main.py
 
 # 指定输出文件
 python main.py --output my_result.csv
+
+# 一行命令运行（从项目根目录）
+source cb_quant_system/venv/bin/activate && cd cb_quant_system && python main.py --strategy shengtang --top 30
 ```
 
 ## 策略使用
