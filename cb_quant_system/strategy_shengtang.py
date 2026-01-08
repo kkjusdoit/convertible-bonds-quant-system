@@ -501,7 +501,8 @@ def calculate_shengtang_value(row: pd.Series,
     return result
 
 
-def strategy_shengtang(df: pd.DataFrame, top_n: int = 30) -> pd.DataFrame:
+def strategy_shengtang(df: pd.DataFrame, top_n: int = 30, 
+                       max_premium_rate: float = 50.0) -> pd.DataFrame:
     """
     盛唐策略主函数
     
@@ -510,6 +511,7 @@ def strategy_shengtang(df: pd.DataFrame, top_n: int = 30) -> pd.DataFrame:
     Args:
         df: 转债数据DataFrame
         top_n: 返回前N只
+        max_premium_rate: 最大溢价率筛选条件（默认50%）
         
     Returns:
         排序后的DataFrame
@@ -537,18 +539,20 @@ def strategy_shengtang(df: pd.DataFrame, top_n: int = 30) -> pd.DataFrame:
     # 过滤无效数据
     df = df[df['st_total_value'] > 0]
     
+    # 只保留低估的（偏离度<0）
+    df = df[df['st_value_deviation'] < 0]
+    
+    # 溢价率筛选
+    if 'premium_rate' in df.columns:
+        df = df[df['premium_rate'] < max_premium_rate]
+        print(f"  溢价率 < {max_premium_rate}% 筛选后: {len(df)} 只")
+    
     # 按估值偏离度排序（越低越好，负值表示低估）
     df = df.sort_values('st_value_deviation', ascending=True)
     
-    print(f"✓ 盛唐估值计算完成，有效数据 {len(df)} 只")
+    print(f"✓ 盛唐估值计算完成，低估且溢价率<{max_premium_rate}%: {len(df)} 只")
     
-    # 统计信息
-    undervalued = len(df[df['st_value_deviation'] < 0])
-    overvalued = len(df[df['st_value_deviation'] > 0])
-    print(f"  低估转债: {undervalued} 只")
-    print(f"  高估转债: {overvalued} 只")
-    
-    avg_deviation = df['st_value_deviation'].mean()
+    avg_deviation = df['st_value_deviation'].mean() if len(df) > 0 else 0
     print(f"  平均偏离度: {avg_deviation:.2f}%")
     
     return df.head(top_n)

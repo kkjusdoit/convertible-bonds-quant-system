@@ -35,6 +35,9 @@ from strategy import (
 )
 from strategy_kashu2026 import strategy_kashu2026, format_kashu_output
 from strategy_shengtang import strategy_shengtang, format_shengtang_output
+from strategy_double_low import run_double_low_strategy
+from strategy_high_ytm import run_high_ytm_strategy
+from strategy_xiaxiu import run_xiaxiu_strategy
 import config
 
 
@@ -99,9 +102,9 @@ def parse_arguments():
     parser.add_argument(
         '--strategy',
         type=str,
-        choices=['all', 'composite', 'low_premium', 'double_low', 'high_ytm', 'value', 'kashu2026', 'shengtang'],
+        choices=['all', 'composite', 'low_premium', 'double_low', 'high_ytm', 'value', 'kashu2026', 'shengtang', 'double_low_filter', 'high_ytm_filter', 'xiaxiu'],
         default='composite',
-        help='选债策略，默认composite(综合评分)，kashu2026为卡叔2026策略，shengtang为盛唐估值策略'
+        help='选债策略，默认composite(综合评分)，xiaxiu为下修博弈策略'
     )
     
     parser.add_argument(
@@ -271,6 +274,35 @@ def main():
         # 保存综合评分榜
         if '综合评分榜' in results:
             save_results(results['综合评分榜'], args.output)
+    
+    # 双低筛选策略
+    elif args.strategy == 'double_low_filter':
+        result_df, output_text = run_double_low_strategy(df, args.top)
+        print(output_text)
+        
+        # 保存结果
+        result_df.to_csv(args.output, index=False, encoding='utf-8-sig')
+        print(f"\n✓ 结果已保存到: {args.output}")
+    
+    # 高YTM筛选策略
+    elif args.strategy == 'high_ytm_filter':
+        result_df, output_text = run_high_ytm_strategy(df, args.top)
+        print(output_text)
+        
+        # 保存结果
+        if len(result_df) > 0:
+            result_df.to_csv(args.output, index=False, encoding='utf-8-sig')
+            print(f"\n✓ 结果已保存到: {args.output}")
+    
+    # 下修博弈策略
+    elif args.strategy == 'xiaxiu':
+        result_df, output_text = run_xiaxiu_strategy(df, args.top)
+        print(output_text)
+        
+        # 保存结果
+        if len(result_df) > 0:
+            result_df.to_csv(args.output, index=False, encoding='utf-8-sig')
+            print(f"\n✓ 结果已保存到: {args.output}")
     
     # 盛唐策略
     elif args.strategy == 'shengtang':

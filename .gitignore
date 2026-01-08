@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Reports and data (except README)
+cb_quant_system/*.md
+cb_quant_system/*.csv
+*.csv
+!README.md
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
