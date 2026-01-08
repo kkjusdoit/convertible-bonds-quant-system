@@ -6,8 +6,9 @@
 ## 功能特点
 - 获取全市场可转债实时数据（使用Akshare免费数据源）
 - 计算关键量化指标：转股溢价率、到期收益率、转股价值、纯债价值等
-- 多种选债策略：基础策略、卡叔2026策略、盛唐估值策略
+- 多种选债策略：双低策略、高YTM策略、下修博弈策略、卡叔2026策略、盛唐估值策略
 - 风险过滤和流动性筛选
+- 汇总报告生成（Markdown格式）
 - 结果导出为CSV文件
 
 ## 环境要求
@@ -34,40 +35,46 @@ pip install -r requirements.txt
 cd cb_quant_system
 source venv/bin/activate
 
-# 运行默认策略（综合评分）
-python main.py
+# 生成汇总报告（推荐，包含所有策略）
+python report.py
 
-# 指定输出文件
-python main.py --output my_result.csv
-
-# 一行命令运行（从项目根目录）
-source cb_quant_system/venv/bin/activate && cd cb_quant_system && python main.py --strategy shengtang --top 30
+# 运行单一策略
+python main.py --strategy double_low_filter
 ```
 
 ## 策略使用
 
-### 1. 基础策略
+### 1. 双低策略
+筛选标准：
+- 价格区间：100-120元（避免高价股性风险）
+- 转股溢价率：<20%（确保股性跟随能力）
+- 剩余规模：<15亿元（提升资金关注度）
+
 ```bash
-# 综合评分策略（默认）
-python main.py --strategy composite
-
-# 低溢价策略 - 进攻性强，适合看好正股
-python main.py --strategy low_premium
-
-# 双低策略 - 价格低+溢价率低，攻守兼备
-python main.py --strategy double_low
-
-# 高YTM策略 - 偏防守，追求债底保护
-python main.py --strategy high_ytm
-
-# 价值挖掘策略 - 寻找低估转债
-python main.py --strategy value
-
-# 运行所有基础策略
-python main.py --strategy all
+python main.py --strategy double_low_filter --no-filter
 ```
 
-### 2. 卡叔2026策略
+### 2. 高YTM策略
+筛选标准：
+- YTM > 3%（高于同期国债收益率）
+- 信用评级 ≥ AA（规避违约风险）
+- 剩余期限 > 2年（避免短期流动性冲击）
+
+```bash
+python main.py --strategy high_ytm_filter --no-filter
+```
+
+### 3. 下修博弈策略
+筛选标准：
+- 剩余期限 < 2年（促转股压力大）
+- 未转股比例 > 70%（避免到期偿债压力）
+- 高溢价率（有下修空间）
+
+```bash
+python main.py --strategy xiaxiu --no-filter
+```
+
+### 4. 卡叔2026策略
 来源于卡叔2026年可转债投资策略，包含四类转债筛选：
 - **第一类**：小市值高溢价距离保本位置不远 - 博弈下修
 - **第二类**：绝对防御临期债 - 低期权价值、质地安全
@@ -75,33 +82,55 @@ python main.py --strategy all
 - **第四类**：存续期2年附近 - 上市公司开始重视促转股
 
 ```bash
-# 运行卡叔2026策略
 python main.py --strategy kashu2026
-
-# 调整输出数量
-python main.py --strategy kashu2026 --top 15
 ```
 
-### 3. 盛唐估值策略
-基于盛唐风物的可转债估值模型，核心公式：
+### 5. 盛唐估值策略
+基于盛唐风物的可转债估值模型：
+
+**专业版** - BS模型估值，筛选低估+溢价率<50%的转债
 ```
-转债估值 = max(到期折现,回售折现) + 正常转股认购价值 + 下修转股组合期权价值 – 强赎认购损失
+转债估值 = max(债底,回售价值) + 转股期权价值 + 下修期权价值 - 强赎损失
 ```
 
-五大估值组成：
-- 到期折现（债底）- 用信用债利率折现
-- 回售折现 - 考虑回售触发概率
-- 正常转股认购价值 - BS模型计算
-- 下修转股组合期权价值 - 下修-转股联合过程估值
-- 强赎认购损失 - 强赎导致的期权价值损失
-
+**简化版** - 低溢价偏离债池，输出格式类似盛唐原版
 ```bash
-# 运行盛唐策略（按低估程度排序）
-python main.py --strategy shengtang
-
-# 输出更多结果
-python main.py --strategy shengtang --top 30
+python main.py --strategy shengtang --no-filter
 ```
+
+### 6. 其他基础策略
+```bash
+# 综合评分策略（默认）
+python main.py --strategy composite
+
+# 低溢价策略 - 进攻性强，适合看好正股
+python main.py --strategy low_premium
+
+# 双低策略（基础版）
+python main.py --strategy double_low
+
+# 高YTM策略（基础版）
+python main.py --strategy high_ytm
+
+# 运行所有基础策略
+python main.py --strategy all
+```
+
+## 汇总报告
+一键生成包含所有策略的Markdown报告：
+```bash
+python report.py
+```
+
+报告包含：
+1. 市场概览
+2. 双低策略筛选结果
+3. 高YTM策略筛选结果
+4. 下修博弈策略筛选结果
+5. 卡叔2026策略（四大类）
+6. 盛唐估值策略（专业版+简化版）
+7. 综合评分策略
+8. 低溢价策略
 
 ## 参数说明
 | 参数 | 说明 | 默认值 |
@@ -120,30 +149,29 @@ python main.py --strategy shengtang --top 30
 | 市场环境 | 推荐策略 | 说明 |
 |----------|----------|------|
 | 牛市/看好正股 | low_premium | 低溢价进攻性强 |
-| 震荡市 | double_low, kashu2026 | 攻守兼备 |
-| 熊市/防守 | high_ytm, shengtang | 注重安全边际 |
-| 博弈下修 | kashu2026 | 专注下修机会 |
+| 震荡市 | double_low_filter, kashu2026 | 攻守兼备 |
+| 熊市/防守 | high_ytm_filter, shengtang | 注重安全边际 |
+| 博弈下修 | xiaxiu, kashu2026 | 专注下修机会 |
 | 寻找低估 | shengtang | 量化估值模型 |
 
 ## 文件结构
 ```
 cb_quant_system/
-├── main.py              # 主程序入口
-├── data_fetcher.py      # 数据获取模块
-├── calculator.py        # 指标计算模块
-├── strategy.py          # 基础选债策略
-├── strategy_kashu2026.py   # 卡叔2026策略
-├── strategy_shengtang.py   # 盛唐估值策略
-├── config.py            # 配置参数
-├── utils.py             # 工具函数
-├── requirements.txt     # 依赖列表
-└── README.md            # 说明文档
+├── main.py                    # 主程序入口
+├── report.py                  # 汇总报告生成
+├── data_fetcher.py            # 数据获取模块
+├── calculator.py              # 指标计算模块
+├── strategy.py                # 基础选债策略
+├── strategy_double_low.py     # 双低策略
+├── strategy_high_ytm.py       # 高YTM策略
+├── strategy_xiaxiu.py         # 下修博弈策略
+├── strategy_kashu2026.py      # 卡叔2026策略
+├── strategy_shengtang.py      # 盛唐估值策略（专业版）
+├── strategy_shengtang_simple.py  # 盛唐估值策略（简化版）
+├── config.py                  # 配置参数
+├── utils.py                   # 工具函数
+└── requirements.txt           # 依赖列表
 ```
-
-## TODO
-- [ ] 双低策略优化
-- [ ] 三低策略（价格低+溢价率低+规模低）
-- [ ] 高息策略
 
 ## 注意事项
 - 数据来源于公开免费接口，仅供学习研究使用
