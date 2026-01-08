@@ -96,7 +96,7 @@ def parse_arguments():
         '--output', 
         type=str, 
         default=config.DEFAULT_OUTPUT_FILE,
-        help=f'输出CSV文件名，默认{config.DEFAULT_OUTPUT_FILE}'
+        help=f'输出Markdown文件名，默认{config.DEFAULT_OUTPUT_FILE}'
     )
     
     parser.add_argument(
@@ -179,14 +179,43 @@ def print_results(df: pd.DataFrame, strategy_name: str):
     print("\n" + "=" * 60)
 
 
-def save_results(df: pd.DataFrame, filename: str):
+def save_results_md(df: pd.DataFrame, filename: str, strategy_name: str = "选债结果"):
     """
-    保存结果到CSV文件
-    Save results to CSV file
+    保存结果到Markdown文件
+    Save results to Markdown file
     """
     try:
-        output_df = format_output(df)
-        output_df.to_csv(filename, index=False, encoding='utf-8-sig')
+        lines = []
+        lines.append(f"# {strategy_name}")
+        lines.append("")
+        lines.append(f"生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        lines.append("")
+        lines.append(f"共筛选出 {len(df)} 只转债：")
+        lines.append("")
+        
+        for idx, (_, row) in enumerate(df.iterrows(), 1):
+            cb_name = row.get('cb_name', 'N/A')
+            price = row.get('price', 0)
+            change_pct = row.get('change_pct', 0)
+            convert_value = row.get('convert_value', 0)
+            premium_rate = row.get('premium_rate', 0)
+            turnover_rate = row.get('turnover_rate', 0)
+            
+            line = (f"{idx}. 转债名称【{cb_name}】，"
+                    f"转债价格【{price:.3f}】元，"
+                    f"涨跌幅【{change_pct:.2f}%】，"
+                    f"转股价值【{convert_value:.2f}】元，"
+                    f"溢价率【{premium_rate:.2f}%】，"
+                    f"换手率【{turnover_rate:.2f}%】。")
+            lines.append(line)
+        
+        lines.append("")
+        lines.append("---")
+        lines.append("*以上结果仅供参考，不构成投资建议*")
+        
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write("\n".join(lines))
+        
         print(f"\n✓ 结果已保存到: {filename}")
     except Exception as e:
         print(f"\n✗ 保存文件失败: {e}")
@@ -273,7 +302,7 @@ def main():
         
         # 保存综合评分榜
         if '综合评分榜' in results:
-            save_results(results['综合评分榜'], args.output)
+            save_results_md(results['综合评分榜'], args.output, "卡叔2026策略 - 综合评分榜")
     
     # 双低筛选策略
     elif args.strategy == 'double_low_filter':
@@ -281,8 +310,7 @@ def main():
         print(output_text)
         
         # 保存结果
-        result_df.to_csv(args.output, index=False, encoding='utf-8-sig')
-        print(f"\n✓ 结果已保存到: {args.output}")
+        save_results_md(result_df, args.output, "双低策略筛选结果")
     
     # 高YTM筛选策略
     elif args.strategy == 'high_ytm_filter':
@@ -291,8 +319,7 @@ def main():
         
         # 保存结果
         if len(result_df) > 0:
-            result_df.to_csv(args.output, index=False, encoding='utf-8-sig')
-            print(f"\n✓ 结果已保存到: {args.output}")
+            save_results_md(result_df, args.output, "高YTM策略筛选结果")
     
     # 下修博弈策略
     elif args.strategy == 'xiaxiu':
@@ -301,8 +328,7 @@ def main():
         
         # 保存结果
         if len(result_df) > 0:
-            result_df.to_csv(args.output, index=False, encoding='utf-8-sig')
-            print(f"\n✓ 结果已保存到: {args.output}")
+            save_results_md(result_df, args.output, "下修博弈策略筛选结果")
     
     # 盛唐策略
     elif args.strategy == 'shengtang':
@@ -317,8 +343,7 @@ def main():
         print(output_df.to_string(index=False))
         
         # 保存结果
-        result_df.to_csv(args.output, index=False, encoding='utf-8-sig')
-        print(f"\n✓ 结果已保存到: {args.output}")
+        save_results_md(result_df, args.output, "盛唐策略选债结果")
     
     elif args.strategy == 'all':
         # 运行所有策略
@@ -330,7 +355,7 @@ def main():
         
         # 保存综合评分策略结果
         if '综合评分策略' in results:
-            save_results(results['综合评分策略'], args.output)
+            save_results_md(results['综合评分策略'], args.output, "综合评分策略结果")
     else:
         # 运行单一策略
         strategy_map = {
@@ -345,7 +370,7 @@ def main():
         result_df = strategy_func(df, args.top)
         
         print_results(result_df, strategy_name)
-        save_results(result_df, args.output)
+        save_results_md(result_df, args.output, strategy_name)
     
     # 完成
     print("\n" + "=" * 60)

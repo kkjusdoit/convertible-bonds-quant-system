@@ -47,7 +47,7 @@ MIN_OUTSTANDING = 0.5
 
 # ============ 输出设置 Output Settings ============
 # 默认输出文件名
-DEFAULT_OUTPUT_FILE = "cb_selection_result.csv"
+DEFAULT_OUTPUT_FILE = "cb_selection_result.md"
 
 # 显示的小数位数
 DECIMAL_PLACES = 2
